@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Navegador KML PWA</title>
+
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#0b1220" />
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <strong>Navegador KML</strong>
+      <span class="muted">PWA • Drive • Gravação • Multi-linhas</span>
+    </div>
+
+    <div class="controls">
+      <button id="btnInstall" class="primary" style="display:none;">Instalar</button>
+      <button id="btnStartGPS" class="primary">Iniciar GPS</button>
+      <button id="btnStopGPS" class="danger" disabled>Parar</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <button id="menuToggle" class="menuToggle">☰</button>
+<section class="panel">
+      
+
+      <h3>Gravar rota (GPS)</h3>
+      <div class="row">
+        <button id="btnRecStart" class="primary">Iniciar gravação</button>
+        <button id="btnRecStop" class="danger" disabled>Parar gravação</button>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="label">Pontos gravados</div>
+          <div id="recPoints" class="value">0</div>
+        </div>
+        <div class="card">
+          <div class="label">Distância gravada</div>
+          <div id="recDist" class="value">0 m</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <input id="routeName" type="text" placeholder="Nome do arquivo (ex: Rota_Suzano_01)" />
+        <button id="btnExportKml">Exportar KML</button>
+        <button id="btnUploadKml" class="primary">Enviar p/ Drive</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <h3>Navegação (voz)</h3>
+      <div class="grid2">
+        <label class="row2">
+          <span>Aviso (m)</span>
+          <input id="announceMeters" type="number" min="20" step="10" value="120"/>
+        </label>
+        <label class="row2">
+          <span>Avançar ponto (m)</span>
+          <input id="advanceMeters" type="number" min="5" step="5" value="25"/>
+        </label>
+        <label class="row2">
+          <span>Repetir (s)</span>
+          <input id="repeatSeconds" type="number" min="3" step="1" value="10"/>
+        </label>
+        <label class="row2">
+          <span>Zoom</span>
+          <input id="zoom" type="number" min="3" max="20" step="1" value="16"/>
+        </label>
+      </div>
+
+      <div class="grid2">
+        <div class="card">
+          <div class="label">GPS</div>
+          <div id="gpsStatus" class="value">Parado</div>
+        </div>
+        <div class="card">
+          <div class="label">Próxima instrução</div>
+          <div id="nextInstr" class="value">Carregue um KML</div>
+        </div>
+        <div class="card">
+          <div class="label">Distância até manobra</div>
+          <div id="nextDist" class="value">—</div>
+        </div>
+        <div class="card">
+          <div class="label">Velocidade</div>
+          <div id="speed" class="value">—</div>
+        </div>
+      </div>
+
+      <p class="hint">
+        Dica: em Android, permita localização e deixe o volume de mídia ligado para ouvir voz.
+      </p>
+    </section>
+
+    <section class="mapWrap">
+      <div id="map"></div>
+    </section>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@tmcw/togeojson@5.6.2/dist/togeojson.umd.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
