@@ -114,31 +114,17 @@ select{ max-width: 100%; }
   .panel{ width: 60%; }
 }
 
-
-/* ===== Fix: menu acima do mapa (Leaflet) ===== */
-#map, .leaflet-container{ z-index: 0; }
-.mapWrap{ position: relative; z-index: 0; }
-.panel{ z-index: 3000; pointer-events: auto; }
-.menuToggle{ z-index: 3100; pointer-events: auto; }
-.panel.open{ box-shadow: 0 10px 30px rgba(0,0,0,.45); }
-
-/* ===== Fullscreen map ===== */
+/* ===== Fullscreen (map 100%) ===== */
 main.fullscreen{ height:100vh; width:100vw; }
 #map{
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   width: 100vw;
   height: 100vh;
   z-index: 0;
 }
 
-/* Remove old grid effect */
-.layout, .mapWrap{ display: none !important; }
-
-/* ===== Panel overlay (drawer) ===== */
+/* ===== Drawer menu ===== */
 .panel{
   position: fixed !important;
   top: 0 !important;
@@ -155,6 +141,18 @@ main.fullscreen{ height:100vh; width:100vw; }
 }
 .panel.open{ transform: translateX(0); box-shadow: 0 12px 34px rgba(0,0,0,.45); }
 
+.menuBtn{
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 5000;
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 16px;
+  background: rgba(15,26,46,.75);
+  backdrop-filter: blur(8px);
+}
+
 .panelTop{
   display:flex;
   align-items:center;
@@ -166,7 +164,7 @@ main.fullscreen{ height:100vh; width:100vw; }
 
 body.menu-open #map,
 body.menu-open .leaflet-container{
-  pointer-events: none; /* garante clique no menu */
+  pointer-events: none;
 }
 
 @media (orientation: landscape){

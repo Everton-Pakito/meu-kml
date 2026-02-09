@@ -570,6 +570,9 @@ function smallestAngleDiff(a,b){
 }
 
 
+document.getElementById("map").addEventListener("click", closeMenu);
+
+
 // Distância (m) do ponto P até o segmento AB (lat/lng) usando aproximação equiretangular
 function distancePointToSegmentMeters(p, a, b){
   // Converte para um plano local (equiretangular) centrado em p
@@ -634,8 +637,9 @@ function recalcSimpleFromPosition(p){
 }
 
 
-// ===== Menu: tocar na tela abre/fecha + auto-ocultar =====
+// ===== Menu lateral: botão mostrar/ocultar + auto-ocultar =====
 const panel = document.querySelector(".panel");
+const btnMenu = document.getElementById("btnMenu");
 let menuTimer = null;
 
 function openMenu(){
@@ -656,18 +660,22 @@ function resetMenuTimer(){
   menuTimer = setTimeout(closeMenu, 5000);
 }
 
-// Tocar/clicar no mapa: alterna menu
-document.getElementById("map").addEventListener("click", (e)=>{
-  // se clicar bem em cima do painel (quando aberto), ignora
+btnMenu.addEventListener("click", (e)=>{
+  e.stopPropagation();
   toggleMenu();
 });
 
-// Qualquer interação dentro do painel mantém aberto e reinicia timer
-panel.addEventListener("click", (e)=>{
-  e.stopPropagation();
-  resetMenuTimer();
+// Se clicar no mapa com o menu aberto, fecha
+document.addEventListener("click", (e)=>{
+  if(panel.classList.contains("open")){
+    const insidePanel = panel.contains(e.target);
+    const isButton = btnMenu.contains(e.target);
+    if(!insidePanel && !isButton){
+      closeMenu();
+    }
+  }
 });
-panel.addEventListener("touchstart", (e)=>{
-  e.stopPropagation();
-  resetMenuTimer();
-}, {passive:true});
+
+// Interação dentro do menu mantém aberto
+panel.addEventListener("click", (e)=>{ e.stopPropagation(); resetMenuTimer(); });
+panel.addEventListener("touchstart", (e)=>{ resetMenuTimer(); }, {passive:true});
