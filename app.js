@@ -14,6 +14,13 @@ let kmlSegments = [];     // [{ name, coords:[{lat,lng}...] }, ...]
 let combinedCoords = [];  // concatenado
 
 const el = (id) => document.getElementById(id);
+
+// ===== Fora de rota + recálculo simples =====
+const OFF_ROUTE_METERS = 60;        // distância máxima até a linha da rota (m)
+const OFF_ROUTE_REPEAT_S = 15;      // repetir aviso (s)
+let offRouteLastSpokenAt = 0;
+let isOffRoute = false;
+
 const API_BASE = "https://script.google.com/macros/s/AKfycbxF2tDy9zYROeY2juq8lPhEkjRKCgEZq46yUWLDSl3nMiGoCfHv-3pwZGeLSCUFjtFbLw/exec";
 
 init();
@@ -40,7 +47,7 @@ function init(){
 }
 
 function initMap(){
-  map = L.map("map").setView([-23.5505, -46.6333], 12);
+  map = L.map("map", { zoomControl: false }).setView([-23.5505, -46.6333], 12);
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19, attribution: "© OpenStreetMap"
   }).addTo(map);
@@ -298,6 +305,29 @@ function onPosition(pos){
     setNext("Carregue um KML para navegar.", "—");
     return;
   }
+  // ===== Fora de rota =====
+  const dLine = distanceToRouteMeters(fix, routeCoords);
+  if(dLine > OFF_ROUTE_METERS){
+    isOffRoute = true;
+    // recálculo simples (corta a rota a partir do ponto mais próximo)
+    recalcSimpleFromPosition(fix);
+
+    // aviso com repetição controlada
+    const now = Date.now();
+    if((now - offRouteLastSpokenAt) >= OFF_ROUTE_REPEAT_S * 1000){
+      speak("Fora da rota. Recalculando.");
+      offRouteLastSpokenAt = now;
+    }
+
+    // após recalcular, se ainda não houver rota suficiente, sai
+    if(routeCoords.length < 2 || maneuvers.length === 0){
+      setNext("Fora da rota.", "—");
+      return;
+    }
+  }else{
+    isOffRoute = false;
+  }
+
 
   const advanceM = parseFloat(el("advanceMeters").value || "25");
 
@@ -540,25 +570,104 @@ function smallestAngleDiff(a,b){
 }
 
 
-// ===== Menu auto-hide =====
+// Distância (m) do ponto P até o segmento AB (lat/lng) usando aproximação equiretangular
+function distancePointToSegmentMeters(p, a, b){
+  // Converte para um plano local (equiretangular) centrado em p
+  const R = 6371000;
+  const φ = toRad(p.lat);
+  const x = (lng) => toRad(lng - p.lng) * Math.cos(φ) * R;
+  const y = (lat) => toRad(lat - p.lat) * R;
+
+  const ax = x(a.lng), ay = y(a.lat);
+  const bx = x(b.lng), by = y(b.lat);
+  const px = 0, py = 0;
+
+  const abx = bx - ax, aby = by - ay;
+  const apx = px - ax, apy = py - ay;
+
+  const ab2 = abx*abx + aby*aby;
+  if(ab2 === 0) return Math.sqrt(apx*apx + apy*apy);
+
+  let t = (apx*abx + apy*aby) / ab2;
+  t = Math.max(0, Math.min(1, t));
+
+  const cx = ax + t*abx;
+  const cy = ay + t*aby;
+  const dx = px - cx;
+  const dy = py - cy;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+function distanceToRouteMeters(p, coords){
+  if(!coords || coords.length < 2) return Infinity;
+  let best = Infinity;
+  for(let i=0; i<coords.length-1; i++){
+    const d = distancePointToSegmentMeters(p, coords[i], coords[i+1]);
+    if(d < best) best = d;
+  }
+  return best;
+}
+
+function closestRouteVertexIndex(p, coords){
+  let bestIdx = 0;
+  let best = Infinity;
+  for(let i=0; i<coords.length; i++){
+    const d = distanceMeters(p, coords[i]);
+    if(d < best){
+      best = d;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+function recalcSimpleFromPosition(p){
+  // Recalculo simples: pega o vértice mais próximo da rota e "corta" a rota a partir dele.
+  const idx = closestRouteVertexIndex(p, routeCoords);
+  const newCoords = routeCoords.slice(Math.max(0, idx));
+  if(newCoords.length >= 2){
+    useRouteCoords(newCoords, "Rota recalculada");
+  }
+
+  // Ajusta manobras: como useRouteCoords zera currentManeuver, ok.
+  // Se preferir manter o desenho original, comente o useRouteCoords e só ajuste currentManeuver.
+}
+
+
+// ===== Menu: tocar na tela abre/fecha + auto-ocultar =====
 const panel = document.querySelector(".panel");
-const menuBtn = document.getElementById("menuToggle");
 let menuTimer = null;
 
 function openMenu(){
   panel.classList.add("open");
+  document.body.classList.add("menu-open");
   resetMenuTimer();
 }
 function closeMenu(){
   panel.classList.remove("open");
+  document.body.classList.remove("menu-open");
+}
+function toggleMenu(){
+  if(panel.classList.contains("open")) closeMenu();
+  else openMenu();
 }
 function resetMenuTimer(){
   if(menuTimer) clearTimeout(menuTimer);
   menuTimer = setTimeout(closeMenu, 5000);
 }
 
-menuBtn.addEventListener("click", (e)=>{
-  e.stopPropagation();
-  openMenu();
+// Tocar/clicar no mapa: alterna menu
+document.getElementById("map").addEventListener("click", (e)=>{
+  // se clicar bem em cima do painel (quando aberto), ignora
+  toggleMenu();
 });
-document.getElementById("map").addEventListener("click", closeMenu);
+
+// Qualquer interação dentro do painel mantém aberto e reinicia timer
+panel.addEventListener("click", (e)=>{
+  e.stopPropagation();
+  resetMenuTimer();
+});
+panel.addEventListener("touchstart", (e)=>{
+  e.stopPropagation();
+  resetMenuTimer();
+}, {passive:true});
